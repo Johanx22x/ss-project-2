@@ -35,12 +35,12 @@ class Bag {
     }
 
     Bag() {
-        n =0;
+        n = 0;
         contents = new int[0];
     }
 
     void removeOnce(int elt) {
-        for (int i = 0; i <= n; i++) {  
+        for (int i = 0; i < n; i++) {  // replaced <= by <
             if (contents[i] == elt ) {
                 n--;
                 contents[i] = contents[n];
@@ -50,7 +50,7 @@ class Bag {
     }
 
     void removeAll(int elt) {
-        for (int i = 0; i <= n; i++) {   
+        for (int i = 0; i < n; i++) {   // replaced <= by <
             if (contents[i] == elt ) {
                 n--;
                 contents[i] = contents[n];
@@ -60,7 +60,7 @@ class Bag {
 
     int getCount(int elt) {
         int count = 0;
-        for (int i = 0; i <= n; i++) 
+        for (int i = 0; i < n; i++) // replaced <= by <
             if (contents[i] == elt) count++; 
         return count;
     }
@@ -71,7 +71,7 @@ class Bag {
             arraycopy(contents, 0, new_contents, 0, n);
             contents = new_contents;
         }
-        contents[n]=elt;
+        contents[n] = elt;
         n++;
     }
 
