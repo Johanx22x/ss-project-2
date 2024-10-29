@@ -145,7 +145,7 @@ public class Amount {
             if (new_euros == Integer.MAX_VALUE) {
                 throw new ArithmeticException("Overflow in euros");
             }
-            new_euros = new_euros + 1;
+            new_euros = new_euros + 1; // replaced -1 by +1
         } 
 
         // Ensure the cents have the correct sign relative to euros
