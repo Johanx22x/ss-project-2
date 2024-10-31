@@ -24,22 +24,44 @@
 
 //@ nullable_by_default                      // Do not remove this annotation
 class Bag {
+    //@ public invariant contents != null;
+    /*@ spec_public @*/ int[] contents;
 
-    int[] contents;
-    int n;
+    //@ public invariant n >= 0;
+    /*@ spec_public @*/ int n;
 
+    /*@ 
+      @ requires input != null;
+      @ ensures n == input.length;
+      @ ensures contents != null;
+      @ ensures contents.length == n;
+      @ ensures (\forall int i; 0 <= i && i < n; contents[i] == input[i]);
+      @*/
     Bag(int[] input) {
         n = input.length;
         contents = new int[n];
         arraycopy(input, 0, contents, 0, n);
     }
 
+    /*@
+      @ ensures n == 0;
+      @ ensures contents != null;
+      @ ensures contents.length == 0;
+      @*/
     Bag() {
         n = 0;
         contents = new int[0];
     }
 
+    /*@
+      @ requires contents != null;
+      @ requires n > 0 && n <= contents.length;
+      @*/
     void removeOnce(int elt) {
+        /*@
+          @ loop_invariant n > 0 && n <= contents.length;
+          @ loop_invariant 0 <= i && i <= n;
+          @*/
         for (int i = 0; i < n; i++) {  // replaced <= by <
             if (contents[i] == elt ) {
                 n--;
@@ -49,25 +71,57 @@ class Bag {
         }
     }
 
+    /*@
+      @ requires contents != null;
+      @ requires n > 0 && n <= contents.length;
+      @*/
     void removeAll(int elt) {
-        for (int i = 0; i < n; i++) {   // replaced <= by <
-            if (contents[i] == elt ) {
+        /*@
+          @ loop_invariant n >= 0 && n <= contents.length;
+          @ loop_invariant 0 <= i && i <= n;
+          @ loop_invariant (\forall int j; 0 <= j && j < i; contents[j] != elt);
+          @ decreases n - i;
+          @*/
+        for (int i = 0; i < n; i++) {  // replaced <= by <
+            if (contents[i] == elt) {
                 n--;
                 contents[i] = contents[n];
+                i--; // Re-check the current index after swapping
             }
         }
     }
 
+    /*@
+      @ requires contents != null;
+      @ requires n > 0 && n <= contents.length;
+      @ ensures \result >= 0 && \result <= n;
+      @*/
     int getCount(int elt) {
         int count = 0;
-        for (int i = 0; i < n; i++) // replaced <= by <
-            if (contents[i] == elt) count++; 
+        /*@
+          @ loop_invariant 0 <= i && i <= n;
+          @ loop_invariant 0 <= count && count <= i;
+          @ decreases n - i;
+          @*/
+        for (int i = 0; i < n; i++) { // replaced <= by <
+            if (contents[i] == elt) count++;
+        }
         return count;
     }
 
+    /*@
+      @ requires contents != null;
+      @ requires n >= 0 && n <= contents.length;
+      @ requires 0 <= 2*n && 2*n <= Integer.MAX_VALUE;
+      @ assignable contents, contents[*], n;
+      @ ensures n == \old(n) + 1;
+      @ ensures contents != null;
+      @ ensures contents.length >= n;
+      @ ensures contents[n - 1] == elt;
+      @*/
     void add(int elt) {
         if (n == contents.length) {
-            int[] new_contents = new int[2*n]; 
+            int[] new_contents = new int[2 * n + 1];
             arraycopy(contents, 0, new_contents, 0, n);
             contents = new_contents;
         }
@@ -75,29 +129,66 @@ class Bag {
         n++;
     }
 
+    /*@
+      @ requires b != null;
+      @ requires b.contents != null;
+      @ requires n >= 0 && n <= contents.length;
+      @ requires b.n >= 0 && b.n <= b.contents.length;
+      @ requires 0 <= n + b.n && n + b.n <= Integer.MAX_VALUE;
+      @ assignable contents, contents[*], n;
+      @*/
     void add(Bag b) {
         int[] new_contents = new int[n + b.n];
         arraycopy(contents, 0, new_contents, 0, n);
-        arraycopy(b.contents, 0, new_contents, n+1, b.n);
+        arraycopy(b.contents, 0, new_contents, n, b.n); // Offset corrected
         contents = new_contents;
     }
 
+    /*@
+      @ requires a != null;
+      @ requires n >= 0 && n <= contents.length;
+      @ requires 0 <= n + a.length && n + a.length <= Integer.MAX_VALUE;
+      @ assignable contents, contents[*], n;
+      @*/
     void add(int[] a) {
         this.add(new Bag(a));
     }
 
-    Bag(Bag b) {
+    /*@
+      @ requires b != null;
+      @ requires b.contents != null;
+      @ requires b.n >= 0 && b.n <= b.contents.length;
+      @ assignable contents, contents[*], n;
+      @ ensures n == b.n;
+      @ ensures (\forall int i; 0 <= i && i < n; contents[i] == b.contents[i]);
+      @*/
+    Bag (Bag b) {
         this.add(b);    
     }
 
+    /*@
+      @ requires src != null && dest != null;
+      @ requires src != dest;
+      @ requires 0 <= length && length <= src.length - srcOff && length <= dest.length - destOff;
+      @ requires 0 <= srcOff && srcOff <= src.length;
+      @ requires 0 <= destOff && destOff <= dest.length;
+      @ ensures (\forall int i; 0 <= i && i < length; dest[destOff + i] == src[srcOff + i]);
+      @ assignable dest[destOff..destOff + length - 1];
+      @*/
     private static void arraycopy(int[] src,
-                                int   srcOff,
-                                int[] dest,
-                                int   destOff,
-                                int   length) {
-        for( int i=0 ; i<length; i++) {
-            dest[destOff+i] = src[srcOff+i];
+            int srcOff,
+            int[] dest,
+            int destOff,
+            int length) {
+        /*@
+          @ loop_invariant 0 <= i && i <= length;
+          @ loop_invariant (\forall int k; 0 <= k && k < destOff; dest[k] == \old(dest[k]));
+          @ loop_invariant (\forall int k; destOff + i <= k && k < dest.length; dest[k] == \old(dest[k]));
+          @ loop_invariant (\forall int k; destOff <= k && k < destOff + i; dest[k] == src[srcOff + k - destOff]);
+          @ decreases length - i;
+          @*/
+        for (int i = 0; i < length; i++) { // replaced <= by <
+            dest[destOff + i] = src[srcOff + i];
         }
     }
-  
 }
